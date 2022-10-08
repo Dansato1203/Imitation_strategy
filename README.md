@@ -30,3 +30,6 @@ python3 imitation.py -r {ROLE_NAME}
 python3 predit.py -r {ROLE_NAME}
 ```
 
+# LICENSE
+Copyright (c) 2022 Dan Sato
+This repository is licensed under The MIT License, see [LICENSE](https://github.com/Dansato1203/Imitation_strategy/blob/main/LICENSE).
