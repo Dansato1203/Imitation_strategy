@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import csv
 import argparse
 
@@ -6,43 +7,60 @@ class EditCSV(object):
 	def __init__(self, csv1, csv2):
 		self.csv1 = csv1
 		self.csv2 = csv2
+		self.df1 = None
+		self.df2 = None
 
-	def readCSV(self):
-		pass
+	def read_CSV(self):
+		self.df1 = pd.read_csv(self.csv1)
+		if self.csv2:
+			self.df2 = pd.read_csv(self.csv2)
+			return self.df1, self.df2
+		return self.df1
 
-	def string2num(self):
-		with open(self.csv1, "r") as f:
-			s = f.read()
+	def save_CSV(self, data_frame, csv_name):
+		data_frame.to_csv(csv_name, index=False)
 
-		s = s.replace("Idling", "0")
-		s = s.replace("IdleKickoff", "1")
-		s = s.replace("IdleEnemyFreeKick", "2")
-		s = s.replace("FindLandmarksToLocalize", "3")
-		s = s.replace("TurnAndSearchCloseBall", "4")
-		s = s.replace("SearchCloseBall", "5")
-		s = s.replace("SearchFarBall", "6")
-		s = s.replace("ApproachBallForGankenKun", "7")
-		s = s.replace("ApproachFreeKickTargetPos", "8")
-		s = s.replace("TurnAroundBallToTarget", "9")
-		s = s.replace("DribbleToTarget", "10")
-		s = s.replace("AdjustToKickPosForGankenKun", "11")
-		s = s.replace("KickBallToTarget", "12")
-		s = s.replace("MoveToDefensePos", "13")
-		s = s.replace("TrackBallForDefender", "14")
-		s = s.replace("TrackBall", "15")
-		s = s.replace("WalkStraight", "16")
-		s = s.replace("ApproachTargetPosForGankenKun", "17")
-		s = s.replace("ApproachTargetPos", "18")
+	def OneHotEncoding(self, data_frame, target): # TODO 列名が違う順番で生成される可能性があるので対処する
+		target_data = data_frame[target]
+		one_hot_data = pd.get_dummies(target_data, drop_first=True)
+		target_column_idx = data_frame.columns.get_loc(target)
+		one_hot_columns = one_hot_data.columns.to_numpy()
+		exception_target = ['other_robot_1_role', 'other_robot_2_role', 'other_robot_3_role']
 
-		s = s.replace("None", "19")
+		for idx, columns_name in enumerate(one_hot_columns):
+			if target in exception_target:
+				new_columns = "other_robot_" + str(exception_target.index(target)+1) +  "_" + columns_name
+				data_frame.insert(target_column_idx + idx, new_columns, one_hot_data.values[:, idx])
+			else:
+				print(columns_name)
+				data_frame.insert(target_column_idx + idx, columns_name, one_hot_data.values[:, idx])
 
-		s = s.replace("True", "1")
-		s = s.replace("False", "0")
+		data_frame.drop(columns=target, axis=1, inplace=True)
 
-		with open(self.csv1, "w") as f:
-			f.write(s)
+	def TaskName2Num(self, df):
+		df.replace("Idling",                         0, inplace=True)
+		df.replace("IdleKickoff",                    1, inplace=True)
+		df.replace("IdleEnemyFreeKick",              2, inplace=True)
+		df.replace("FindLandmarksToLocalize",        3, inplace=True)
+		df.replace("TurnAndSearchCloseBall",         4, inplace=True)
+		df.replace("SearchCloseBall",                5, inplace=True)
+		df.replace("SearchFarBall",                  6, inplace=True)
+		df.replace("ApproachBallForGankenKun",       7, inplace=True)
+		df.replace("ApproachFreeKickTargetPos",      8, inplace=True)
+		df.replace("TurnAroundBallToTarget",         9, inplace=True)
+		df.replace("DribbleToTarget",               10, inplace=True)
+		df.replace("AdjustToKickPosForGankenKun",   11, inplace=True)
+		df.replace("KickBallToTarget",              12, inplace=True)
+		df.replace("MoveToDefensePos",              13, inplace=True)
+		df.replace("TrackBallForDefender",          14, inplace=True)
+		df.replace("TrackBall",                     15, inplace=True)
+		df.replace("WalkStraight",                  16, inplace=True)
+		df.replace("ApproachTargetPosForGankenKun", 17, inplace=True)
+		df.replace("ApproachTargetPos",             18, inplace=True)
 
-	def str2int(self):
+		df.replace("None",                          19, inplace=True)
+
+	def Str2Int(self):
 		df = pd.read_csv(self.csv1)
 		for i in range(len(df)):
 			print(len(df.columns))
@@ -55,13 +73,10 @@ class EditCSV(object):
 	def mergeCSV(self):
 		import datetime
 
-		data_list = []
 		df1 = pd.read_csv(self.csv1, header=0)
-		data_list.append(df1)
 		df2 = pd.read_csv(self.csv2, header=0)
-		data_list.append(df2)
 
-		df_merged = pd.concat(data_list)
+		df_merged = pd.concat([df1, df2], axis=0)
 
 		date = datetime.datetime.now()
 		df_merged.to_csv('../csvfiles/merged/' + date.strftime("%y%m%d%H")  +'-merged.csv', index = False)
@@ -72,6 +87,7 @@ def main():
 	parser.add_argument('-c2', '--csvfile2', type=str, default=None)
 	parser.add_argument('-m', '--merge', action='store_true')
 	parser.add_argument('-r', '--revise', action='store_true')
+	parser.add_argument('-e', '--encoding', action='store_true')
 	args = parser.parse_args()
 
 	editcsv = EditCSV(args.csvfile1, args.csvfile2)
@@ -80,6 +96,16 @@ def main():
 	elif args.revise:
 		editcsv.string2num()
 		editcsv.str2int()
+	elif args.encoding:
+		df = editcsv.read_CSV()
+		encode_target = ['role', 'PREV_TASK', 'other_robot_1_role', 'other_robot_2_role', 'other_robot_3_role']
+
+		for i, target in enumerate(encode_target):
+			editcsv.OneHotEncoding(df, target)
+
+		editcsv.TaskName2Num(df)
+
+		editcsv.save_CSV(df, 'test.csv')
 
 if __name__ == '__main__':
 	main()
