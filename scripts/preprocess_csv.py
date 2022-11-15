@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 import csv
 import argparse
+from sklearn.preprocessing import MinMaxScaler
+
 
 class EditCSV(object):
 	def __init__(self, csv1, csv2):
@@ -81,6 +83,28 @@ class EditCSV(object):
 		date = datetime.datetime.now()
 		df_merged.to_csv('../csvfiles/merged/' + date.strftime("%y%m%d%H")  +'-merged.csv', index = False)
 
+	def insert_dummyData(self, data_frame):
+		df_copy = data_frame.copy()
+
+		dummy_data = np.array([[100000,100000,0,0,10000,10000,0,0,10,0,100000,100000,0,0,0,1,0,100000,100000,0,0,0,0,0,100000,100000,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,19]])
+		print(dummy_data)
+		df_dummy = pd.DataFrame(dummy_data, columns=df_copy.columns)
+
+		insert_num = 4
+		for i in range(insert_num):
+			df_copy = pd.concat([df_dummy, df_copy])
+
+		return df_copy
+
+	def normalize(self, data_frame):
+		target_df = data_frame.copy()
+		target_df.drop(columns='TASK', axis=1, inplace=True)
+		mm = MinMaxScaler()
+		scaled_df = pd.DataFrame(mm.fit_transform(target_df), index=target_df.index, columns=target_df.columns)
+
+		output_df = pd.concat([scaled_df, data_frame['TASK']], axis=1)
+		return output_df
+
 def main():
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-c1', '--csvfile1', type=str, default=None)
@@ -88,6 +112,8 @@ def main():
 	parser.add_argument('-m', '--merge', action='store_true')
 	parser.add_argument('-r', '--revise', action='store_true')
 	parser.add_argument('-e', '--encoding', action='store_true')
+	parser.add_argument('-i', '--insert', action='store_true')
+	parser.add_argument('-n', '--normalize', action='store_true')
 	args = parser.parse_args()
 
 	editcsv = EditCSV(args.csvfile1, args.csvfile2)
@@ -102,10 +128,16 @@ def main():
 
 		for i, target in enumerate(encode_target):
 			editcsv.OneHotEncoding(df, target)
-
 		editcsv.TaskName2Num(df)
-
 		editcsv.save_CSV(df, 'test.csv')
+	elif args.insert:
+		df = editcsv.read_CSV()
+		insert_df = editcsv.insert_dummyData(df)
+		editcsv.save_CSV(insert_df, 'insert_test.csv')
+	elif args.normalize:
+		df = editcsv.read_CSV()
+		normalize_df = editcsv.normalize(df)
+		editcsv.save_CSV(normalize_df, 'normalize_test.csv')
 
 if __name__ == '__main__':
 	main()
