@@ -4,8 +4,7 @@ import csv
 import argparse
 from sklearn.preprocessing import MinMaxScaler
 
-
-class EditCSV(object):
+class Preprocess(object):
 	def __init__(self, csv1, csv2):
 		self.csv1 = csv1
 		self.csv2 = csv2
@@ -116,28 +115,28 @@ def main():
 	parser.add_argument('-n', '--normalize', action='store_true')
 	args = parser.parse_args()
 
-	editcsv = EditCSV(args.csvfile1, args.csvfile2)
+	preprocess = Preprocess(args.csvfile1, args.csvfile2)
 	if args.merge:
-		editcsv.mergeCSV()
+		preprocess.mergeCSV()
 	elif args.revise:
-		editcsv.string2num()
-		editcsv.str2int()
+		preprocess.string2num()
+		preprocess.str2int()
 	elif args.encoding:
-		df = editcsv.read_CSV()
+		df = preprocess.read_CSV()
 		encode_target = ['role', 'PREV_TASK', 'other_robot_1_role', 'other_robot_2_role', 'other_robot_3_role']
 
 		for i, target in enumerate(encode_target):
-			editcsv.OneHotEncoding(df, target)
-		editcsv.TaskName2Num(df)
-		editcsv.save_CSV(df, 'test.csv')
+			preprocess.OneHotEncoding(df, target)
+		preprcess.TaskName2Num(df)
+		preprcess.save_CSV(df, 'test.csv')
 	elif args.insert:
-		df = editcsv.read_CSV()
-		insert_df = editcsv.insert_dummyData(df)
-		editcsv.save_CSV(insert_df, 'insert_test.csv')
+		df = preprcess.read_CSV()
+		insert_df = preprcess.insert_dummyData(df)
+		preprcess.save_CSV(insert_df, 'insert_test.csv')
 	elif args.normalize:
-		df = editcsv.read_CSV()
-		normalize_df = editcsv.normalize(df)
-		editcsv.save_CSV(normalize_df, 'normalize_test.csv')
+		df = preprcess.read_CSV()
+		normalize_df = preprcess.normalize(df)
+		preprcess.save_CSV(normalize_df, 'normalize_test.csv')
 
 if __name__ == '__main__':
 	main()
